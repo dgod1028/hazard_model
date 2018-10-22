@@ -19,12 +19,7 @@ class X1RetweetJaccard(Variable):
         :return:                sentiment varialbe of node at current_date
         """
         users = self.network.users()
-        total_jaccard = 0
-        adopted_count = 0
-        for user in users:
-            if user not in nonadopted:
-                total_jaccard += self.interaction.retweet_jaccard(int(node), int(user))
-                adopted_count += 1
-        if total_jaccard <= 0:
-            return total_jaccard
-        return math.log(total_jaccard)
+        """
+        Fixing
+        
+        """
