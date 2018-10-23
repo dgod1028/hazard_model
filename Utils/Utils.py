@@ -1,4 +1,5 @@
 import pickle
+from scipy.spatial.distance import cosine
 
 def date_to_step(timestamp, start_date, intervals):
     if timestamp < start_date:
@@ -16,3 +17,7 @@ def make_userid(file):
     type = detect_type(file)
     if type == "p":
         dat = pickle.load(open(file),'rb')
+
+def topical_similarity(user1, user2):
+        # return cosine_similarity(user1,user2)  ## Error
+        return 1 - cosine(user1, user2)

@@ -1,5 +1,5 @@
 ##
-# Author : Li Yinxing ( Tohoku University )
+##
 
 import json as js
 import numpy as np
@@ -12,6 +12,7 @@ from collections import defaultdict
 import pickle as pk
 from time import time
 import warnings
+
 warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
 from gensim.test.utils import common_texts
 from gensim.corpora.dictionary import Dictionary
@@ -24,35 +25,39 @@ from scipy.spatial.distance import cosine
 import gensim.parsing.preprocessing as pre
 
 #### Must
-PATH = ('C:/users/Administrator/Documents/TwitterProject')      # Change to your path here
-HIS_FILE = "stream_store/old_tweets_2017.p"                     # path of historical tweets
-
-
+PATH = ('D:/Github/hazard_model')  # Change to your path here
+HIS_FILE = "data/old_tweets_2017.p"  # path of historical tweets
+TWEET_FILE = 'data/tweets.p'         # add for build LDA model with bos tweets and historical file
+ALL_FILES = [HIS_FILE, TWEET_FILE]
 
 #### Optional   *path for if save tmp files
-LDA_FILE = "tmp/his_lda.lda"
-DICT_FILE = "tmp/his_lda.dict"
-CORP_FILE = "tmp/his_lda.mm"
-USER_TOPIC_FILE = "tmp/his_user_topic.pkl"
-USER_IDS_FILE = "tmp/his_user_ids.pkl"
-TEXT_FILE = "tmp/his_text.pkl"
-UTEXT_FILE = "tmp/his_utext.pkl"
+## Note that need to make directory tmp to save files in default
+LDA_FILE = "data/LDA/his_lda.lda"
+DICT_FILE = "data/LDA/his_lda.dict"
+CORP_FILE = "data/LDA/his_lda.mm"
+USER_TOPIC_FILE = "data/LDA/his_user_topic.p"
+USER_IDS_FILE = "data/LDA/his_user_ids.p"
+TEXT_FILE = "data/LDA/his_text.p"
+UTEXT_FILE = "data/LDA/his_utext.p"
 
 os.chdir(PATH)
 
+
 class LDA:
-    def __init__(self,t=10,multi=True,debug=False,savetmp = True):
+    def __init__(self, t=10, multi=True, debug=False, savetmp=True):
         self.t = t
         self.multi = multi
         self.debug = debug
         self.save = savetmp
-            
+
     ## Function for multiprocessing
 
-    def todict(self,arg):
+    def todict(self,arg):  ## For his
         return [arg["user_id"], arg["text"]]
+    def todict2(self,arg):
+            return [arg["user"]["id"],arg["text"]]
 
-    def LDA(self,file, type="p", by_user=False, update=True):
+    def LDA(self, file, type="p", by_user=False, update=True):
         sta = time()
 
         """
@@ -69,27 +74,38 @@ class LDA:
             if (os.path.isfile(TEXT_FILE) and os.path.isfile(
                     UTEXT_FILE) and update == False) == False:
                 ## If text list is not created, then create text list from pickle(or json)
-                dat = self.read_file(file, type)
+                dat = self.read_file(file[0], type) ## his data
+                dat2 = self.read_file(file[1],type) ## tweets data
                 if self.multi:
                     p = Pool()
-                    utexts = defaultdict()
+                    utexts = defaultdict()  ## ignore all for utexts
                     tmp = p.map(self.todict, dat)  ### return [user_id,text] for each user
+                    tmp2 = p.map(self.todict2,dat2)
                     texts = []
                     ### Aggregate texts by users.
-                    for i in tmp:
+                    tmp3 = tmp + tmp2
+                    for i in tmp3:
                         if utexts.get(str(i[0])) == None:
                             utexts[str(i[0])] = []
                         ### Text Cleaning
+                        """
+                        Here put Text Cleaning
+                        """
                         cleaned_text = i[1].split(" ")
                         utexts[str(i[0])].append(cleaned_text)
                         # print(cleaned_text)
                         texts.append(cleaned_text)
                     p.close()
+                #
+                """ Need Fix for non multi
                 else:
                     texts = []
                     utexts = []
                     for i in dat:
                         texts.append(i["text"])
+                    for i in dat2:
+                        texts.append(i["text"])
+                """
                 if self.debug:
                     print("Convert Cost\t: %.2f" % (time() - sta))
                 pk.dump(texts, open(TEXT_FILE, "wb"))
@@ -108,19 +124,21 @@ class LDA:
             MmCorpus.serialize(CORP_FILE, common_corpus)
             # Train the model on the corpus.
             if self.debug:
-                print("Run LDA...",end="")
+                print("Run LDA...", end="")
             lda = LdaModel(common_corpus, num_topics=self.t)
             lda.save(LDA_FILE)
             if self.debug:
                 print("Finished!")
-            return [lda,common_corpus,common_dictionary]
+            return [lda, common_corpus, common_dictionary]
         else:
             model = self.load_topic(LDA_FILE)
             corpus = MmCorpus(CORP_FILE)
             dictionary = Dictionary.load(DICT_FILE)
             return [model, corpus, dictionary]
-    def load_topic(self,file):
+
+    def load_topic(self, file):
         return LdaModel.load(file)
+
     def doctopic2vec(self, doc_topic):
         ## Doctopic for each Document (For Multiprocessing)
         ## doc_topic -> [(0, 0.3), (2, 0.6)]. If Topic Number = 3 then convert to [0.3, 0, 0.6]
@@ -128,7 +146,8 @@ class LDA:
         for i in doc_topic:
             mat[i[0]] = i[1]
         return mat
-    def doctopic2mat(self,doc_topics,path = ""):
+
+    def doctopic2mat(self, doc_topics, path=""):
         """
 
         :param doc_topics: Document topics extracted by get_document_topics function from LDA model
@@ -136,11 +155,11 @@ class LDA:
                             then skip create again, load file from path instead.
         :return          : pandas Dataframe Topic share.
         """
-        if path == "" or os.path.isfile(path)==False:
+        if path == "" or os.path.isfile(path) == False:
             ### Create Topic share matrix for each document
             if self.multi:
                 p = Pool()
-                mat = p.map(self.doctopic2vec,doc_topics)
+                mat = p.map(self.doctopic2vec, doc_topics)
                 p.close()
             else:
                 mat = []
@@ -151,29 +170,40 @@ class LDA:
             topic_share.columns = range(0, self.t)
             if self.save == True:
                 assert path != None, 'Please input path!'
-                topic_share.to_csv(path,index=False)
+                topic_share.to_csv(path, index=False)
             return pd.DataFrame(nmat)
         else:
             return pd.read_csv(path)
-    def get_user_id(self,text):
+
+    def get_user_id(self, text):
         return text["user_id"]
-    def get_user_ids(self,file,path=""):
+
+    def get_id(self,text):  ## for tweets
+        return text["user"]["id"]
+
+    def get_user_ids(self, file, path=""):
         self.save_allert(path)
-        if path!="":
+        if path != "":
             if os.path.isfile(path):
-                return pk.load(open(path,"rb"))
-        dat = pk.load(open(file,"rb"))
+                return pk.load(open(path, "rb"))
+        dat = pk.load(open(file[0], "rb"))
+        dat2 = pk.load(open(file[1], "rb"))
         if self.multi:
             p = Pool()
-            id = p.map(self.get_user_id,dat)
+            id = p.map(self.get_user_id, dat)
+            id2 = p.map(self.get_id,dat2)
         else:
             id = []
+            id2 = []
             for i in dat:
                 id.append(self.get_user_id(i))
+            for i in dat2:
+                id2.append(self.get_id(i))
         if self.save:
-            pk.dump(id,open(path,"wb"))
+            pk.dump(id, open(path, "wb"))
 
-        return id
+        return id + id2
+
     """  ## Maybe memoryoff if data is too big.
     def unique_ids(self,ids):
         u_ids = []
@@ -182,11 +212,12 @@ class LDA:
                 u_ids.append(id)
         return u_ids
     """
-    def user_topics(self,doc_topics,ids,path=""):
+
+    def user_topics(self, doc_topics, ids, path=""):
         self.save_allert(path)
-        if path!= "":
+        if path != "":
             if os.path.isfile(path):
-                return pk.load(open(path,"rb"))
+                return pk.load(open(path, "rb"))
         user_topics = defaultdict()
         count = 0
         for doc in doc_topics:
@@ -200,14 +231,14 @@ class LDA:
         ## Normalization
         for key in user_topics.keys():
             user_topics[key] = self.normalization(user_topics[key])
-        if self.save:
-            pk.dump(user_topics,open(path,"wb"))
+        pk.dump(user_topics, open(path, "wb"))
         return user_topics
-    def topical_similarity(self,user1,user2):
-        #return cosine_similarity(user1,user2)  ## Error
-        return 1-cosine(user1,user2)
 
-    def normalization(self,vec):
+    def topical_similarity(self, user1, user2):
+        # return cosine_similarity(user1,user2)  ## Error
+        return 1 - cosine(user1, user2)
+
+    def normalization(self, vec):
         s = np.sum(vec)
         if s == 0:
             return vec
@@ -215,39 +246,44 @@ class LDA:
             for i in range(len(vec)):
                 vec[i] /= s
             return vec
-    def save_allert(self,path):
+
+    def save_allert(self, path):
         if self.save:
-            assert path!="", 'Please input path for save tmp file.'
-    def read_file(self,file, type='p',encoding='utf-8'):
+            assert path != "", 'Please input path for save tmp file.'
+
+    def read_file(self, file, type='p', encoding='utf-8'):
         if type == 'p':
             return pk.load(open(file, "rb"))
         elif type == 'json':
-            return js.load(open(file,'rb'))
+            return js.load(open(file, 'rb'))
         elif type == 'csv':
-            return pd.read_csv(file,encoding=encoding)
+            return pd.read_csv(file, encoding=encoding)
 
 
 if __name__ == "__main__":
     # 1. Run LDA Model
-    lda = LDA(t=4,multi=True,debug=True,savetmp=True)
-    model,corpus,dic = lda.LDA(file=HIS_FILE,update=False)
+    lda = LDA(t=4, multi=True, debug=True, savetmp=True)
+    model, corpus, dic = lda.LDA(file=ALL_FILES, update=False)
 
     # 2. Get Topic share for each documents
     dt = model.get_document_topics(corpus)
     # 3. Get user ids for each documents    **example: get user id list --> dt[0] --> user_id 0   dt[1] --> user_id 5
-    user_ids = lda.get_user_ids(HIS_FILE, USER_IDS_FILE)
+    user_ids = lda.get_user_ids(ALL_FILES, USER_IDS_FILE)
 
     # 4. Calculate Topic share for each users.
-    user_topics = lda.user_topics(doc_topics=dt, ids= user_ids, path= USER_TOPIC_FILE)
-    #for key in user_topics.keys():
+    user_topics = lda.user_topics(doc_topics=dt, ids=user_ids, path=USER_TOPIC_FILE)
+    # for key in user_topics.keys():
     #   print("{0}\t\t:{1}".format(key,user_topics[key]) )
-    #print(lda.topical_similarity(user_topics["40184043"],user_topics["2202380486"]))
+    # print(lda.topical_similarity(user_topics["40184043"],user_topics["2202380486"]))
 
     ## Example
     print(user_topics["341135120"])
     print(user_topics["1315351699"])
-    print(lda.topical_similarity(user_topics["341135120"],user_topics["1315351699"]))
+    print(lda.topical_similarity(user_topics["341135120"], user_topics["1315351699"]))
     """
     topic_share = lda.doctopic2mat(dt,savefile=True,path="tmp/topic_share.csv")
     """
-
+    ### To Do
+    ## Complete non multi
+    ## Text Cleaning
+    ## logging info

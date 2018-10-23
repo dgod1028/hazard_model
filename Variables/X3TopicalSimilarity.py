@@ -3,12 +3,16 @@ from Utils.Interactions import Interaction
 import math
 from Utils.Utils import *
 import json
+import pickle
 
-class X1RetweetJaccard(Variable):
-    def __init__(self, g, interactions_file,type):
-        super().__init__("retweet_jaccard")
+
+USER_TOPICS = '../data/lda/his_user_topic.p'   # <- User Topics Files from LDA Model
+
+class X3Topical_Similarity(Variable):
+    def __init__(self, g, topical_file):
+        super().__init__("topical_similarity")
         self.network = g
-        self.interaction = Interaction(interactions_file,type)
+        self.user_topics = pickle.load(open(topical_file, "rb"))
 
     def get_covariate(self, node, current_date, nonadopted):
         """
@@ -18,8 +22,19 @@ class X1RetweetJaccard(Variable):
         :param nonadopted:
         :return:                sentiment varialbe of node at current_date
         """
-        users = self.network.users()
-        """
-        Fixing
-        
-        """
+
+        friends = self.network.friends(node, current_date)  ## Get friends list at current time
+        #users = self.network.nodes
+        total_topical = 0
+        adopted_count = 0
+
+
+        for user in friends:
+            if user != node and user not in nonadopted:
+                ## One way relasion ship [node] -> [user] and [node] <- X [user]
+                if self.network.g[node].get(user) is not None and self.network.g[user].get(node) is None:
+                    total_topical += topical_similarity(self.user_topics[user][node])
+                    adopted_count += 1
+        if total_topical <= 0:
+            return total_topical
+        return math.log(total_topical)

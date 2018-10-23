@@ -8,6 +8,7 @@ from HazardModel import HazardModel
 from Variables.X0Intercept import *
 from Variables.X1RetweetJaccard import *
 from Variables.XSentiment import *
+from Variables.X3TopicalSimilarity import *
 from Utils.NetworkUtils import *
 from Utils.Plot import *
 
@@ -15,6 +16,8 @@ WEEK_IN_SECOND = 7 * 24 * 60 * 60
 STOP_STEP = 13
 # See https://github.com/yeqingyan/Sentiment_MaxEnt for program to preprocessing the sentiment data using MaxEnt
 #SENTIMENT_DATA = "data/thegoodplace_sentiment_seconds.json"
+USER_TOPICS = 'data/lda/his_user_topic.p'   # <- User Topics Files from LDA Model
+
 
 class DateAction(argparse.Action):
     """
@@ -47,10 +50,11 @@ def main():
     # TODO For Swati, put your varialbe here.
     variables = [
         X0Intercept(),
-        X1RetweetJaccard(g,'data/TheGoodPlace_interactions.p',type="p")
+        X1RetweetJaccard(g,'data/Interactions.p',type="p"),
         #XSentiment(g, SENTIMENT_DATA, XSentiment.POSITIVE),     # X4Positive
         #XSentiment(g, SENTIMENT_DATA, XSentiment.NEUTRAL),      # X5Neutral
         #XSentiment(g, SENTIMENT_DATA, XSentiment.NEGATIVE),     # X6Negative
+        X3Topical_Similarity(g,USER_TOPICS)
     ]
     for v in variables:
         assert hasattr(v, 'name'), "Each variable must have a name attribute"

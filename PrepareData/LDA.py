@@ -1,5 +1,5 @@
 ##
-# Author : Li Yinxing ( Tohoku University )
+##
 
 import json as js
 import numpy as np
@@ -25,23 +25,24 @@ import gensim.parsing.preprocessing as pre
 
 #### Must
 PATH = ('C:/users/Administrator/Documents/TwitterProject')      # Change to your path here
-HIS_FILE = "iPhone8_comment.csv"                     # path of text file
+HIS_FILE = "stream_store/old_tweets_2017.p"                     # path of historical tweets
 
 
 
 #### Optional   *path for if save tmp files
-LDA_FILE = "tmp/his_lda.lda"
-DICT_FILE = "tmp/his_lda.dict"
-CORP_FILE = "tmp/his_lda.mm"
-USER_TOPIC_FILE = "tmp/his_user_topic.pkl"
-USER_IDS_FILE = "tmp/his_user_ids.pkl"
-TEXT_FILE = "tmp/his_text.pkl"
-UTEXT_FILE = "tmp/his_utext.pkl"
+## Note that need to make directory tmp to save files in default
+LDA_FILE = "data/LDA/his_lda.lda"
+DICT_FILE = "data/LDA/his_lda.dict"
+CORP_FILE = "data/LDA/his_lda.mm"
+USER_TOPIC_FILE = "data/LDA/his_user_topic.p"
+USER_IDS_FILE = "data/LDA/his_user_ids.p"
+TEXT_FILE = "data/LDA/his_text.p"
+UTEXT_FILE = "data/LDA/his_utext.p"
 
 os.chdir(PATH)
 
 class LDA:
-    def __init__(self,t=10,multi=True,debug=False,savetmp = False):
+    def __init__(self,t=10,multi=True,debug=False,savetmp = True):
         self.t = t
         self.multi = multi
         self.debug = debug
@@ -49,10 +50,12 @@ class LDA:
             
     ## Function for multiprocessing
 
-    def todict(self,arg):
+    def todict(self, arg):
         return [arg["user_id"], arg["text"]]
 
-    def LDA(self,file, type="p", by_user=False, update=True,col = 0):
+
+
+    def LDA(self,file, type="p", by_user=False, update=True):
         sta = time()
 
         """
@@ -69,27 +72,21 @@ class LDA:
             if (os.path.isfile(TEXT_FILE) and os.path.isfile(
                     UTEXT_FILE) and update == False) == False:
                 ## If text list is not created, then create text list from pickle(or json)
-                dat = self.read_file(file, type,col=col)
+                dat = self.read_file(file, type)
                 if self.multi:
                     p = Pool()
                     utexts = defaultdict()
-                    if type != "csv":   ## if JSON or Pickle file
-                        tmp = p.map(self.todict, dat)  ### return [user_id,text] for each user
-                        texts = []
-                        ### Aggregate texts by users.
-                        for i in tmp:
-                            if utexts.get(str(i[0])) == None:
-                                utexts[str(i[0])] = []
-                            ### Text Cleaning
-                            cleaned_text = i[1].split(" ")
-                            utexts[str(i[0])].append(cleaned_text)
-                            # print(cleaned_text)
-                            texts.append(cleaned_text)
-                    else:
-                        ### Clean Text
-                        stoplist = set('for a of the and to in 0 1 2 3 4 5 6 7 8 9'.split())  ## add any other stopwords
-                        texts = [[word for word in document.lower().split() if word not in stoplist] for document in dat]  ##  lower, split
-                        #print(texts)
+                    tmp = p.map(self.todict, dat)  ### return [user_id,text] for each user
+                    texts = []
+                    ### Aggregate texts by users.
+                    for i in tmp:
+                        if utexts.get(str(i[0])) == None:
+                            utexts[str(i[0])] = []
+                        ### Text Cleaning
+                        cleaned_text = i[1].split(" ")
+                        utexts[str(i[0])].append(cleaned_text)
+                        # print(cleaned_text)
+                        texts.append(cleaned_text)
                     p.close()
                 else:
                     texts = []
@@ -108,7 +105,6 @@ class LDA:
                 else:
                     texts = pk.load(open(TEXT_FILE, "rb"))
             # Create a corpus from a list of texts
-
             common_dictionary = Dictionary(texts)
             common_dictionary.save(DICT_FILE)
             common_corpus = [common_dictionary.doc2bow(text) for text in texts]
@@ -116,8 +112,7 @@ class LDA:
             # Train the model on the corpus.
             if self.debug:
                 print("Run LDA...",end="")
-            #print(common_corpus)
-            lda = LdaModel(common_corpus,id2word=common_dictionary, num_topics=self.t)
+            lda = LdaModel(common_corpus, num_topics=self.t)
             lda.save(LDA_FILE)
             if self.debug:
                 print("Finished!")
@@ -226,42 +221,22 @@ class LDA:
     def save_allert(self,path):
         if self.save:
             assert path!="", 'Please input path for save tmp file.'
-    def read_file(self,file, type='p',encoding='utf-8',col=0):
-        """
-
-        :param file: file path
-        :param type: JSON or p or csv
-        :param encoding: default utf-8
-        :param col:  if csv, define text column number (0, 1, 2 ... )
-        :return: text list
-        """
+    def read_file(self,file, type='p',encoding='utf-8'):
         if type == 'p':
             return pk.load(open(file, "rb"))
         elif type == 'json':
             return js.load(open(file,'rb'))
         elif type == 'csv':
-            return pd.read_csv(file,encoding=encoding).iloc[:,col]
+            return pd.read_csv(file,encoding=encoding)
 
 
 if __name__ == "__main__":
     # 1. Run LDA Model
     lda = LDA(t=4,multi=True,debug=True,savetmp=True)
-    model,corpus,dic = lda.LDA(file=HIS_FILE,update=True,type='csv',col=1)
+    model,corpus,dic = lda.LDA(file=HIS_FILE,update=False)
 
     # 2. Get Topic share for each documents
     dt = model.get_document_topics(corpus)
-
-    # 各トピックごとの単語の抽出（topicsの引数を-1にすることで、ありったけのトピックを結果として返してくれます。）
-    model.print_topics(num_topics=-1, num_words=230)
-
-
-    # トピックごとの上位10語をCSVで出力
-    print('Top words')
-    topicdata = model.print_topics(num_topics=-1, num_words=20)
-    print(topicdata)
-    pd.DataFrame(topicdata).to_csv("topic_detail_lda.csv")
-
-    """  For Twitter Data
     # 3. Get user ids for each documents    **example: get user id list --> dt[0] --> user_id 0   dt[1] --> user_id 5
     user_ids = lda.get_user_ids(HIS_FILE, USER_IDS_FILE)
 
@@ -275,7 +250,7 @@ if __name__ == "__main__":
     print(user_topics["341135120"])
     print(user_topics["1315351699"])
     print(lda.topical_similarity(user_topics["341135120"],user_topics["1315351699"]))
-    
+    """
     topic_share = lda.doctopic2mat(dt,savefile=True,path="tmp/topic_share.csv")
     """
 

@@ -53,14 +53,15 @@ class DynamicNetwork:
         """
 
         friends = []
-        for friend in self.network.successors_iter(node):
+
+        for friend in self.network.successors(node):
             # return friends which edge node->friends was created before the current date
             if (self.network[node][friend][self.EDGE_CREATE_TIME] <= current_date):
                 friends.append(friend)
         return friends
 
     def num_friends(self, node, current_date):
-        return len(self.num_friends(node, current_date))
+        return len(self.friends(node, current_date))
 
     def date_to_step(self, timestamp):
         if timestamp < self.start_date:

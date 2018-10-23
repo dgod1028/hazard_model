@@ -18,7 +18,7 @@ class X1RetweetJaccard(Variable):
         :param nonadopted:
         :return:                sentiment varialbe of node at current_date
         """
-        users = self.network.nodes
+        users = self.network.users()
         total_jaccard = 0
         adopted_count = 0
         for user in users:
