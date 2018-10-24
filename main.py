@@ -57,9 +57,9 @@ def main():
         #XSentiment(g, SENTIMENT_DATA, XSentiment.POSITIVE),     # X4Positive
         #XSentiment(g, SENTIMENT_DATA, XSentiment.NEUTRAL),      # X5Neutral
         #XSentiment(g, SENTIMENT_DATA, XSentiment.NEGATIVE),     # X6Negative
-        #X3Topical_Similarity(g,USER_TOPICS),
+        X3Topical_Similarity(g,USER_TOPICS),
         X7TweetsFrequency(g,HIS_FREQS),
-        #X8TopicalInterest(g,USER_TOPICS,[0])   ## assume topic 0 is entertainment topic
+        X8TopicalInterest(g,USER_TOPICS,[0])   ## assume topic 0 is entertainment topic
 
     ]
     for v in variables:
