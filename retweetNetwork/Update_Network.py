@@ -8,7 +8,7 @@ import itertools
 MAIN = '../data/ThisISUS.graphml'
 INTER = "../data/TheGoodPlace_interactions_pairs.graphml"
 USER_TOPIC_FILE = "../data/lda/his_user_topic.p"
-USER = '../data/user.p'
+USER = '../data/users.p'
 
 def update_jaccard():
     pass

@@ -23,6 +23,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy.spatial.distance import cosine
 import gensim.parsing.preprocessing as pre
 
+
 #### Must
 PATH = ('C:/users/Administrator/Documents/TwitterProject')      # Change to your path here
 HIS_FILE = "stream_store/old_tweets_2017.p"                     # path of historical tweets
@@ -43,6 +44,13 @@ os.chdir(PATH)
 
 class LDA:
     def __init__(self,t=10,multi=True,debug=False,savetmp = True):
+        """
+
+        :param t        : Topic Number
+        :param multi    : If multiprocessing by using pool.map
+        :param debug    : If debug
+        :param savetmp  : If save tmp files, it will make fast to read user topics if LDA is already done
+        """
         self.t = t
         self.multi = multi
         self.debug = debug

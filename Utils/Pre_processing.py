@@ -17,7 +17,8 @@ import networkx as nx
 import json
 import time
 from multiprocessing import Pool
-
+from pymongo import MongoClient
+from Utils.Utils import *
 
 os.chdir('C:/users/Administrator/Documents/TwitterProject')
 
@@ -60,10 +61,6 @@ def main(multi=False,debug=False):
         print('Cost %.3f s.' % (time.time() - start))
 def get_stats(user1, user2, interactions):
     return interactions.retweet_jaccard(user1, user2)
-def read_users(user_file):
-    with open(user_file, 'rb') as f:
-        users = map(int, f.readlines())
-    return users
 
 
 
