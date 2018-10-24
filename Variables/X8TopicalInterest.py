@@ -43,4 +43,4 @@ class X8TopicalInterest(Variable):
         if interest <= 0:
             return interest
         else:
-            return math.log(interest)
+            return interest
