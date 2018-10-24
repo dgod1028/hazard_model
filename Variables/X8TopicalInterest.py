@@ -40,7 +40,4 @@ class X8TopicalInterest(Variable):
             if check in self.ent_topics:
                 interest += t
             check += 1
-        if interest <= 0:
-            return interest
-        else:
-            return interest
+        return interest

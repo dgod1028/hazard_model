@@ -32,8 +32,8 @@ class X3Topical_Similarity(Variable):
         for user in friends:
             if user != node and user not in nonadopted:
                 ## One way relasion ship [node] -> [user] and [node] <- X [user]
-                if self.network.g[node].get(user) is not None and self.network.g[user].get(node) is None:
-                    total_topical += topical_similarity(self.user_topics[user][node])
+                if self.network.network[user].get(node) is None:
+                    total_topical += topical_similarity(self.user_topics[user],self.user_topics[node])
                     adopted_count += 1
         if total_topical <= 0:
             return total_topical

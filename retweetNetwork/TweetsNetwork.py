@@ -3,6 +3,7 @@ import networkx as nx
 
 import logging
 from retweetNetwork.Tweet import *
+from Utils.Filepath import USERS
 
 class TweetsNetwork:
 

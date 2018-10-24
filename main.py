@@ -47,7 +47,6 @@ def main():
     arguments = config()
     print(arguments)
     g = get_graphml(arguments['g'])
-    print(type(g))
     # g = sample(g, 30 / len(g))
 
     g = DynamicNetwork(g, start_date=arguments['d'], intervals=WEEK_IN_SECOND, stop_step=STOP_STEP)
@@ -60,7 +59,7 @@ def main():
         #XSentiment(g, SENTIMENT_DATA, XSentiment.NEGATIVE),     # X6Negative
         #X3Topical_Similarity(g,USER_TOPICS),
         X7TweetsFrequency(g,HIS_FREQS),
-        X8TopicalInterest(g,USER_TOPICS,[0])   ## assume topic 0 is entertainment topic
+        #X8TopicalInterest(g,USER_TOPICS,[0])   ## assume topic 0 is entertainment topic
 
     ]
     for v in variables:

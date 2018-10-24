@@ -22,6 +22,8 @@ class HazardModel:
         # Remove the first two column "nodeid" and "step", use the last column as endog, use the remain column as exog
         exog, endog = inputdata.iloc[:, 2:-1] ,inputdata.iloc[:, -1]
         print(exog)
+        exog.to_csv('data/x.csv',index=False)
+        endog.to_csv('data/y.csv',index=False)
         hazard_mle = HazardMLE(exog=exog, endog=endog)
         logging.info("MLE start fiting")
 

@@ -22,9 +22,8 @@ class X7TweetsFrequency(Variable):
         :param nonadopted:
         :return:                sentiment varialbe of node at current_date
         """
-        #print(self.his_freq)
-        #print(node)
-        if self.his_freq.get(node):
+        node = int(node)
+        if self.his_freq.get(node) is not None:
             total_his_freq = self.his_freq[node]
             return math.log(total_his_freq)
         else:
