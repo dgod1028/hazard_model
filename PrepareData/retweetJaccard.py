@@ -15,15 +15,16 @@ USER_FILE = "../data/TheGoodPlace.csv"
 INTERACTION_COLLECTION = "Interactions"
 
 def main():
-    output_dir = USER_FILE.rpartition('.')[0]
+    #output_dir = USER_FILE.rpartition('.')[0]
+    output_dir = "../data/"
     init_logging(output_dir + '_log.log')
     db = get_mongo_connection()
     coll = db[INTERACTION_COLLECTION]
     users = read_users(USER_FILE)
     users = list(users)[:500]
     interactions = get_interactions(users, coll)
-    pickle.dump(interactions, open(output_dir + '_interactions.p', 'wb'))
-    json.dump(interactions, open(output_dir + '_interactions.json', 'w'))
+    pickle.dump(interactions, open(output_dir + 'interactions.p', 'wb'))
+    json.dump(interactions, open(output_dir + 'interactions.json', 'w'))
 
 
 def init_logging(log_file):

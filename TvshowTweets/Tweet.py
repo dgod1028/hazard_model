@@ -16,10 +16,16 @@ class Tweet:
     def __init__(self, tweet):
         self.tweet = tweet
         self.text = tweet['text']
-        self.author_id = int(self.tweet['user']['id'])
-        self.create_time = int(
+        try:
+            self.author_id = int(self.tweet['user']['id'])
+        except:
+            self.author_id = int(self.tweet['user_id'])
+        print(self.tweet['created_at'])
+        try:
+            self.create_time = int(
             datetime.datetime.strptime(self.tweet['created_at'], "%a %b %d %H:%M:%S %z %Y").timestamp())
-
+        except:
+            self.create_time = int(self.tweet['created_at'].timestamp())
         # Retweet field
         if Tweet.RETWEET_FIELD in tweet:
             self.retweet = True

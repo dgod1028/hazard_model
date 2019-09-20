@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 
-def plot(data, show=True, ymin=None, xlabel=None, ylabel=None):
+def plot(data, show=True, ymin=None, xlabel=None, ylabel=None, main = "plot.png"):
     for k,d in data.items():
         plt.plot(d, label=k)
     plt.legend()
@@ -13,7 +13,7 @@ def plot(data, show=True, ymin=None, xlabel=None, ylabel=None):
     if show:
         plt.show()
     else:
-        plt.savefig("plot.png")
+        plt.savefig(main)
     plt.clf()
 
 def hist(data, show=True, ymin=None):

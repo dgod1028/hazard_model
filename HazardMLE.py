@@ -1,8 +1,10 @@
 from statsmodels.base.model import GenericLikelihoodModel
 import numpy as np
 from scipy import stats
+import statsmodels.api as sm
 
 class HazardMLE(GenericLikelihoodModel):
+#class HazardMLE(sm.OLS):
     def __init__(self, endog, exog, dist=stats.norm):
         super().__init__(endog=endog, exog=exog)
         self.dist = dist

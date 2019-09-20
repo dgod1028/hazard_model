@@ -36,7 +36,8 @@ def read_users(user_file,type='p'):
 
 
 
-def get_mongo_connection(host="127.0.0.1", port=27017, db_name="stream_store"):
+def get_mongo_connection(host="127.0.0.", port=27017, db_name="stream_store",no=1):
+    host = host + str(no)
     return MongoClient(host=host, port=port)[db_name]
 
 

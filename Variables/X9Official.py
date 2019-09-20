@@ -8,11 +8,10 @@ from Utils.Filepath import HIS_FREQS
 
 #USER_TOPICS = '../data/lda/his_user_topic.p'   # <- User Topics Files from LDA Model
 
-class X7TweetsFrequency(Variable):
-    def __init__(self, users, his_freq_file):
-        super().__init__("tweets frequency")
-        self.his_freq = pickle.load(open(his_freq_file, "rb"))
-        self.users = users
+class X9Official(Variable):
+    def __init__(self, official_file):
+        super().__init__("Official media")
+        self.officials = pickle.load(open(official_file, "rb"))
 
     def get_covariate(self, node, current_date, nonadopted):
         """
@@ -20,13 +19,12 @@ class X7TweetsFrequency(Variable):
         :param node:
         :param current_date:
         :param nonadopted:
-        :return:                sentiment varialbe of node at current_date
+        :return:                1 if hub else 0
         """
 
         node = int(node)
-        #print("X7 Finished")
-        if self.his_freq.get(node) is not None:
-            total_his_freq = self.his_freq[node]
-            return math.log(total_his_freq)
+
+        if node in self.officials:
+            return 1
         else:
             return 0

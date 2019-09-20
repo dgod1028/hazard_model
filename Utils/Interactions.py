@@ -17,7 +17,6 @@ class Interaction:
         # if(key  in self.memoise):
         #     return self.memoise[key]
         user1_retweet_set = set(self.interactions[int(user1)]['retweets'].keys())
-
         user2_retweet_set = set(self.interactions[int(user2)]['retweets'].keys())
         jac = Interaction.jaccard(user1_retweet_set, user2_retweet_set)
         # self.memoise[key] = jac
@@ -29,7 +28,7 @@ class Interaction:
         :return: count of interaction from user1 to user2
         '''
         all_interactions = self.interactions[int(user1)]['interactions']
-        s_user2 = str(user2)
+        s_user2 = user2
         if s_user2 in all_interactions:
             return all_interactions[s_user2]
         else:
@@ -38,7 +37,7 @@ class Interaction:
         if type == 'p':
             interactions = pickle.load(open(filename, 'rb'))
         else:
-            interactions = json.load(open(filename, 'r'))
+            interactions = json.load(open(filename, 'r',encoding="utf-8"))
         return interactions
 
     def jaccard(a, b):

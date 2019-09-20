@@ -5,10 +5,11 @@ from Utils.Utils import *
 import json
 import pickle
 from Utils.Filepath import HIS_FREQS
+import logging
 
-
+USER_TOPICS = 'data/lda/user_topic_prob.p'    # User Topics Files from LDA Model
 class X8TopicalInterest(Variable):
-    def __init__(self, g, user_topic,ent_topics = None):
+    def __init__(self, user_topic, ent_topics = None):
         ## ent_topics : one or more topic list which are related to entertainment
         ## Example, if ent_topics = [0,1] , and the user_topic = [0.2, 0.5, 0.1, 0.2] , then
         #           return 0.7 <- (0.2 + 0.5)
@@ -16,9 +17,10 @@ class X8TopicalInterest(Variable):
         assert ent_topics is not None, "Please enter topic number list of entertainment. Example: [0,5] or [1]"
         assert isinstance(ent_topics,list), "Type of ent_topics must be list!"
         super().__init__("topical_interest")
-        self.network = g
-        self.user_topics = pickle.load(open(user_topic, "rb"))
+        self.user_topics = pickle.load(open(USER_TOPICS, "rb"))
         self.ent_topics = ent_topics
+        logging.basicConfig(filename="Logging/X8_Miss.log", level=logging.NOTSET,
+                            format='%(asctime)s %(message)s')
 
 
     def get_covariate(self, node, current_date, nonadopted):
@@ -31,13 +33,17 @@ class X8TopicalInterest(Variable):
         """
         #print(self.his_freq)
         #print(node)
-        user_topic = self.user_topics[node]
-        self.l = len(user_topic)
-        assert all(i < self.l  for i in self.ent_topics ), "All values in ent_topics must smaller than topic number!"
-        interest = 0
-        check = 0                           ## check if current topic is in ent_topics
-        for t in user_topic:
-            if check in self.ent_topics:
-                interest += t
-            check += 1
-        return interest
+        try:
+            user_topic = self.user_topics[int(node)]
+            self.l = len(user_topic)
+            assert all(i < self.l  for i in self.ent_topics ), "All values in ent_topics must smaller than topic number!"
+            interest = 0
+            check = 0                           ## check if current topic is in ent_topics
+            for k, t in enumerate(user_topic):
+                if k in self.ent_topics:
+                    interest += t
+            #print("X8 Finished")
+            return interest
+        except:
+            #logging.info("Missing for Node %i" % int(node))
+            return 0

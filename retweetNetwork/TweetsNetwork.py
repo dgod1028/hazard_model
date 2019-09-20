@@ -3,14 +3,14 @@ import networkx as nx
 
 import logging
 from retweetNetwork.Tweet import *
-from Utils.Filepath import USERS
+from Utils.Filepath import USERS, TWEETS_COLLECTION
 
 class TweetsNetwork:
 
     # Vertex attribute
     USER_CREATE_TIME    = "create_time"
     #DB_NAME = "old_tweets_2017"
-    DB_NAME = 'tweets'
+    DB_NAME = TWEETS_COLLECTION
 
     # Edge attribute
     EDGE_CREATE_TIME    = "create_time"
@@ -25,16 +25,23 @@ class TweetsNetwork:
         logging.info("staring")
         self.network = nx.DiGraph()
         self.db = MongoClient()['stream_store']
-        self.coll = self.db[TweetsNetwork.DB_NAME]
+        self.colls = []
+        #print(TWEETS_COLLECTION["ThisIsUS"])
+        for coll in TWEETS_COLLECTION[show]:
+            #print(coll)
+            self.colls.append(self.db[coll])
+        #self.coll = self.db[TweetsNetwork.DB_NAME[show]]
         #print(self.coll.find_one())
         self.show = show
 
     def add_user(self, user_id, create_time):
+        user_id = int(user_id)
         assert isinstance(user_id, int), "User id must be int!"
         if user_id not in self.network:
             self.network.add_node(user_id, create_time = create_time)
-            print(self.network.node[user_id])
+            #print(self.network.node[user_id])
         else:
+
             if create_time < self.network.node[user_id][self.USER_CREATE_TIME]:
                 self.network.node[user_id][self.USER_CREATE_TIME] = create_time
 
@@ -72,7 +79,6 @@ class TweetsNetwork:
     def add_retweet_edge(self, tweet):
         if tweet.retweet_author_id not in self.network:
             return
-
         self.add_edge(tweet.author_id, tweet.retweet_author_id, TweetType.RETWEET, tweet.create_time)
 
     def add_quote_edge(self, tweet):
@@ -142,27 +148,35 @@ class TweetsNetwork:
         # Added tweet author to network
         query_string = {"entities.hashtags.text": show_name}
         logging.info('\nQuery Tweets Begin\nQuery string is ' + str(query_string))
-        for t in self.coll.find(query_string):
-            #print(t)
-            tweet = Tweet(t)
-            self.add_user(tweet.author_id, tweet.create_time)
-        tweet_users = self.network.number_of_nodes()
-        logging.info('Analysis tweets with hashtag {} finished. {} users added.'.format(show_name,tweet_users))
-
-        # Added historical tweets
-        count = 0
-        for author_id in self.network.nodes():
-            query_string = {"user.id": author_id}
-            for t in self.coll.find(query_string):
-                self.add_tweet(Tweet(t))
-            if count % 1000 == 0:
-                logging.info("Historical tweets: {} users done, {} users remain.".format(count, tweet_users))
-            if count % 5000 == 0:
-                self.save()
-            count += 1
-
-        tweet_edges = self.network.number_of_edges()
-        logging.info('Analysis historical tweets finished. {} edges added.'.format(tweet_edges))
-
+        for coll in self.colls:
+            count = 0
+            l = coll.count()
+            print(l)
+            for t in coll.find(query_string):
+                count += 1
+                if count % 1 == 0:
+                    print("Progress: %i / %i" %(count, l))
+                tweet = Tweet(t)
+                self.add_user(tweet.author_id, tweet.create_time)
+            tweet_users = self.network.number_of_nodes()
+            logging.info('Analysis tweets with hashtag {} finished. {} users added.'.format(show_name,tweet_users))
+            """
+            # Added historical tweets
+            count = 0
+            for author_id in self.network.nodes():
+                if count % 100000 == 0:
+                    print("Progress: %i / %i" %(count, l))
+                query_string = {"user_id": author_id}
+                for t in self.coll.find(query_string):
+                    self.add_tweet(Tweet(t))
+                if count % 1000 == 0:
+                    logging.info("Historical tweets: {} users done, {} users remain.".format(count, tweet_users))
+                if count % 50000 == 0:
+                    self.save()
+                count += 1
+    
+            tweet_edges = self.network.number_of_edges()
+            logging.info('Analysis historical tweets finished. {} edges added.'.format(tweet_edges))
+            """
     def save(self, filename='ThisIsUsAdoption_1.graphml'):
         nx.write_graphml(self.network, self.show + ".graphml")

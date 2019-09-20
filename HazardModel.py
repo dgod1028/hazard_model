@@ -5,29 +5,57 @@ from scipy import stats
 import numpy as np
 from HazardMLE import HazardMLE
 import logging
+import pickle
+from Utils.Filepath import SPARSE_USER, INTERACTION_FILE
+from Utils.Interactions import Interaction
+
+from multiprocessing import Pool
+from functools import partial
+from tqdm import tqdm
+import os
+import pandas as pd
+import pickle
+
+
+def make_row(n, current_date, non_adopted, v):
+    return v.get_covariate(n, current_date, frozenset(non_adopted))
 
 class HazardModel:
-    def __init__(self, g, variables):
+    def __init__(self, g, variables,t=True):
         assert isinstance(g, DynamicNetwork), "Network must be instance of DynamicNetwork"
         self.network = g
         self.variables = variables
+        self.sparse_user = pickle.load(open(SPARSE_USER, "rb"))
+        self.interaction = Interaction(INTERACTION_FILE, "p")
+        self.t = t
 
-    def hazard_mle_estimation(self):
+    def  hazard_mle_estimation(self,update = True):
         """
         Input: Dynamic Network, Variables, Adoption Time,
         Output: AdoptedNodesPerStep, Parameters
         """
         # Generate input data for MLE
-        ref_result, inputdata = self.generate_MLE_input_data()
-        # Remove the first two column "nodeid" and "step", use the last column as endog, use the remain column as exog
-        exog, endog = inputdata.iloc[:, 2:-1] ,inputdata.iloc[:, -1]
-        print(exog)
-        exog.to_csv('data/x.csv',index=False)
-        endog.to_csv('data/y.csv',index=False)
-        hazard_mle = HazardMLE(exog=exog, endog=endog)
-        logging.info("MLE start fiting")
 
-        result = hazard_mle.fit()
+        # Remove the first two column "nodeid" and "step", use the last column as endog, use the remain column as exog
+        if update or (os.path.isfile("data/x.csv") is False) or (os.path.isfile("data/ref_result.p") is False) :
+            print("No data, start creating...")
+            ref_result, inputdata = self.generate_MLE_input_data()
+            exog, endog = inputdata.iloc[:, 2:-1] ,inputdata.iloc[:, -1]
+            print(exog)
+            exog.to_csv('data/x.csv',index=False)
+            endog.to_csv('data/y.csv',index=False)
+            pickle.dump(ref_result,open("data/ref_result.p","wb"))
+        else:
+            exog = pd.read_csv("data/x.csv").loc[:,[v.name for v in self.variables]]
+            endog = pd.read_csv("data/y.csv",header=None)
+            ref_result = pickle.load(open("data/ref_result.p","rb"))
+        print(", ".join([v.name for v in self.variables]))
+        print("Data Prepared...")
+        hazard_mle = HazardMLE(exog=exog, endog=endog)
+        logging.info("MLE start fitting")
+        print("MLE start fitting")
+
+        result = hazard_mle.fit(maxiter=10000)
         # Note `summary()` might not work on small samples, since it didn't know how to normalized a vector of zeros
         logging.info(result.summary())
         logging.info("MLE loglikelihood")
@@ -39,22 +67,39 @@ class HazardModel:
         Input: Dynamic Network, Variables, Parameters
         Output: Hazard Rate
         """
+
         prob_dist = {}
         step = 0
         current_date = self.network.start_date
         stop_step = self.network.stop_step
         non_adopted = self.network.users()
+        non_adopted = [i for i in non_adopted if int(i) not in self.sparse_user]  ######
         intervals = self.network.intervals
         adopted = []
-
         while non_adopted:
-            if stop_step != -1 and step > stop_step:
+            print("Now Processing %i / %i" %(step, stop_step))
+            if stop_step != -1 and step >= stop_step:
                 break
             non_adopted_temp = []
             num_adopted = 0
             prob_dist[step] = []
             for n in non_adopted:
-                covariates = self.get_covariates(n, current_date, frozenset(non_adopted))
+                self.step = step
+                #covariates = self.get_covariates(n, current_date, frozenset(non_adopted))
+                covariates = []
+
+                if self.t:
+                    for v in self.variables[:-(stop_step - 1)]:
+                        covariates.append(v.get_covariate(n, current_date, frozenset(non_adopted)))
+                    ## Time
+                    tmp = [0] * (stop_step)
+                    tmp[step] = 1
+                    covariates += tmp[:-1]
+                else:
+                    for v in self.variables:
+                        covariates.append(v.get_covariate(n, current_date, frozenset(non_adopted)))
+
+
                 adopted_probability = stats.norm.cdf(np.dot(covariates, parameters))
 
                 prob_dist[step].append(adopted_probability)
@@ -76,12 +121,13 @@ class HazardModel:
 
     def get_covariates(self, node, current_date, nonadopters):
         covariates = []
-        for v in self.variables:
+        for v in self.variables[:-(self.network.stop_step)]:
             covariates.append(v.get_covariate(node, current_date, nonadopters))
         return covariates
 
     def generate_MLE_input_data(self, verbose=False):
         non_adopted = self.network.users()  # all node are non-adopted at the begining
+        non_adopted = [i for i in non_adopted if int(i) not in self.sparse_user]          ######
         current_date = self.network.start_date
         adopted = []
         mle_input_data = []
@@ -89,15 +135,28 @@ class HazardModel:
 
         stop_step = self.network.stop_step
         intervals = self.network.intervals
+        #print(stop_step)
 
         while non_adopted:
+            print("Now Processing %i / %i" % (step, stop_step))
             non_adopted_temp = []
             num_adopted = 0
-            for n in non_adopted:
+            self.step = step
+            for n in tqdm(non_adopted):
                 # Row format [nodeid, step, variable0, ... variablen, adoption]
                 row = [n, step]
-                for v in self.variables:
-                    row.append(v.get_covariate(n, current_date, frozenset(non_adopted)))
+
+                if self.t:
+                    for v in self.variables[:-(stop_step-1)]:
+                        row.append(v.get_covariate(n, current_date, frozenset(non_adopted)))
+                    ## Time
+                    tmp = [0] * stop_step
+                    tmp[step] = 1
+                    row += tmp[:-1]
+                else:
+                    for v in self.variables:
+                        row.append(v.get_covariate(n, current_date, frozenset(non_adopted)))
+
 
                 adoption = 0
                 if self.network.user_adopted_time(n) <= current_date:
@@ -105,7 +164,6 @@ class HazardModel:
                     num_adopted += 1
                 else:
                     non_adopted_temp.append(n)
-
                 row.append(adoption)
                 mle_input_data.append(row)
             non_adopted = non_adopted_temp
@@ -115,6 +173,9 @@ class HazardModel:
                 adopted.append(num_adopted + adopted[-1])
             current_date += intervals
             step += 1
+            #print(mle_input_data)
+            #print(len(mle_input_data))
+            #print(len(mle_input_data[0]))
             if stop_step != -1 and step >= stop_step:
                 break
         return adopted, DataFrame(mle_input_data, columns=["ID", "Step"] + [v.name for v in self.variables] + ["Adoption"])

@@ -1,6 +1,8 @@
 import json
 from Variables.Variable import Variable
 from Utils.Utils import *
+import math
+import os
 
 """
     XSentiment for X4Positive, X5Neutral, X6Negative
@@ -23,11 +25,23 @@ class XSentiment(Variable):
             super().__init__("NegativeSentiment")
 
         self.network = g
-        self.sentiment = self.parse_sentiment_data_by_step(
-                json.load(open(json_file)),
-                self.network.start_date,
-                self.network.stop_step,
-                self.network.intervals)
+        if sentiment_category == -1:
+            n = "negative"
+        elif sentiment_category == 0:
+            n = "neutral"
+        else:
+            n = "positive"
+        self.sentiment_file = "data/sentiment_%s.p" % sentiment_category
+
+        if os.path.isfile(self.sentiment_file):
+            self.sentiment = pickle.load(open(self.sentiment_file,"rb"))
+        else:
+            self.sentiment = self.parse_sentiment_data_by_step(
+                    json.load(open(json_file)),
+                    self.network.start_date,
+                    self.network.stop_step,
+                    self.network.intervals)
+
 
 
     def get_covariate(self, node, current_date, nonadopted):
@@ -54,7 +68,7 @@ class XSentiment(Variable):
 
         # # return self.sentiment[node][step]
         # if adopted_neighbors == 0:
-        return num_sentiment
+        return math.log(num_sentiment+1)
         # else:
         #     return num_sentiment / adopted_neighbors
 
@@ -133,5 +147,5 @@ class XSentiment(Variable):
         if debug:
             for k, v in sentiment_data.items():
                 print("{} {}".format(k, v))
-
+        pickle.dump(sentiment_data,open(self.sentiment_file,"wb"))
         return sentiment_data
