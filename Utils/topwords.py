@@ -95,7 +95,7 @@ def top_words_table(topwords, jlist=None, type="category",prob=False):
 
 
 if __name__ == "__main__":
-    T = 20
+    T = 5
     model = LdaMulticore.load('../data/LDA/his_LDA_%i.lda' % T)
     # id2jan   -> {1,[*
     #id2jan = pk.load(open('id2jan.p','rb'))

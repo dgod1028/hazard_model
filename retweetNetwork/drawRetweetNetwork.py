@@ -6,7 +6,7 @@ from retweetNetwork.Tweet import *
 from Utils.Filepath import TWEETS_COLLECTION, HISTORICAL_COLLECTION
 from multiprocessing import Pool
 
-TV_SHOW = ["ThisIsUs","TheGoodPlace","24Legacy"]
+TV_SHOW = ["ThisIsUs","TheGoodPlace","24Legacy"][:2]
 FILE = "OLD"  ### <- Change this to Tweets to create Node, "OLD" to create edges.
 NODE_GRAPH = 'data/nodes.graphml'
 TWEET_COLL = TWEETS_COLLECTION
@@ -22,13 +22,16 @@ def add_node(show):
     print("%s Finished" %show)
 
 def add_edge(show):
+    print("Start %s" % show)
     logging.basicConfig(filename=show + ".log", level=logging.INFO, format='%(asctime)s %(message)s')
     logging.info("staring")
     network = TweetsNetwork(show)  ##
     network.network = get_graphml(show+".graphml")  ## Load graphml file build by tweets
     network.colls = []
-    for coll in OLD_COLL:
+    for coll in TWEETS_COLLECTION[show]:
         network.colls.append(network.db[coll])
+    #for coll in OLD_COLL:
+    #    network.colls.append(network.db[coll])
     #network.coll = network.db[OLD_COLL]  ## Read collections[old_tweets_2017]
     count = 0
     # print(network.network.nodes)
@@ -65,12 +68,13 @@ def add_edge(show):
 
 if __name__ == "__main__":
     if FILE == "Tweets":   ### 1. Create Graphml File with Node and edges by using Tweets Data
-        p = Pool()
+        p = Pool(4)
         p.map(add_node,TV_SHOW)
         p.close()
 
     elif FILE == "OLD":    ### 2. Add edges by using Historical data.
-        p = Pool()
+        print(TV_SHOW)
+        p = Pool(4)
         p.map(add_edge,TV_SHOW)
         p.close()
 

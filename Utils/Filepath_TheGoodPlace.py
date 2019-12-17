@@ -16,21 +16,20 @@ TWEETS_COLLECTION = {"ThisIsUs":['ThisIsUs_new','ThisIsUs_o'],
 HISTORICAL_COLLECTION = ['old_tweets','old_tweets_2017']
 
 ### Network-related
-g = 'data/ThisIsUs.graphml'
+g = 'data/TheGoodPlace.graphml'
 HIS_FREQS ='data/historical_frequencys.p'
-INTERACTION_FILE = "data/Interactions_ThisIsUs.p"
-DYNAMIC_NETWORK ="data/dg2.p"
+INTERACTION_FILE = "data/Interactions.p"
+DYNAMIC_NETWORK ="data/dg.p"
 
 
 ### Index
-USERS = 'data/ThisIsUs_users.p'
+USERS = 'data/TheGoodPlace_users.p'
 SPARSE_USER = "data/sparse_user2.p"           # <- User whose tweets frequency is lower than 10 in total.
-JACCARD = "data/jaccard_ThisIsUs.p"
+JACCARD = "data/jaccard.p"
 HUBS = "data/hubs.p"
-SENTIMENT_DATA = "data/X4Tweets_TIU.json"
+SENTIMENT_DATA = "data/X4Tweets.json"
 OFFICIAL = "data/official.p"
 SENTIMENT = "data/Sentiment.p"
-IN_OUT = "data/in_out_ThisIsUs.csv"
 
 
 ### LDA-related

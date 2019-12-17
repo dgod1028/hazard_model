@@ -18,7 +18,7 @@ class X2Reciprocal_Neighbors(Variable):
         logging.basicConfig(filename="Logging/X2_Miss.log", level=logging.NOTSET,
                             format='%(asctime)s %(message)s')
 
-    def get_covariate(self, node, current_date, nonadopted):
+    def get_covariate(self, node, current_date, nonadopted, step):
         """
         Overwrite get_covariate function
         :param node:

@@ -6,7 +6,7 @@ import numpy as np
 from HazardMLE import HazardMLE
 import logging
 import pickle
-from Utils.Filepath import SPARSE_USER, INTERACTION_FILE
+from Utils.Filepath import SPARSE_USER, INTERACTION_FILE, USERS
 from Utils.Interactions import Interaction
 
 from multiprocessing import Pool
@@ -15,19 +15,21 @@ from tqdm import tqdm
 import os
 import pandas as pd
 import pickle
+from sklearn.preprocessing import StandardScaler
 
 
 def make_row(n, current_date, non_adopted, v):
     return v.get_covariate(n, current_date, frozenset(non_adopted))
 
 class HazardModel:
-    def __init__(self, g, variables,t=True):
+    def __init__(self, g, variables,t=True,model=0):
         assert isinstance(g, DynamicNetwork), "Network must be instance of DynamicNetwork"
         self.network = g
         self.variables = variables
-        self.sparse_user = pickle.load(open(SPARSE_USER, "rb"))
+        self.users = pickle.load(open(USERS, "rb"))
         self.interaction = Interaction(INTERACTION_FILE, "p")
         self.t = t
+        self.model = model
 
     def  hazard_mle_estimation(self,update = True):
         """
@@ -42,9 +44,16 @@ class HazardModel:
             ref_result, inputdata = self.generate_MLE_input_data()
             exog, endog = inputdata.iloc[:, 2:-1] ,inputdata.iloc[:, -1]
             print(exog)
-            exog.to_csv('data/x.csv',index=False)
-            endog.to_csv('data/y.csv',index=False)
+            exog.to_csv('data/x2_%i.csv' %self.model,index=False)
+            endog.to_csv('data/y2.csv',index=False)
+            #nx = exog
+            #if nx.shape[1] > 1:
+            #    nx.iloc[:, 1:] = StandardScaler().fit_transform(exog.iloc[:,1:])
+
+            #nx.to_csv('data/x.csv', index=False)
+            #exog = nx
             pickle.dump(ref_result,open("data/ref_result.p","wb"))
+
         else:
             exog = pd.read_csv("data/x.csv").loc[:,[v.name for v in self.variables]]
             endog = pd.read_csv("data/y.csv",header=None)
@@ -73,7 +82,7 @@ class HazardModel:
         current_date = self.network.start_date
         stop_step = self.network.stop_step
         non_adopted = self.network.users()
-        non_adopted = [i for i in non_adopted if int(i) not in self.sparse_user]  ######
+        non_adopted = [i for i in non_adopted if int(i) in self.users]  ######
         intervals = self.network.intervals
         adopted = []
         while non_adopted:
@@ -87,17 +96,16 @@ class HazardModel:
                 self.step = step
                 #covariates = self.get_covariates(n, current_date, frozenset(non_adopted))
                 covariates = []
-
                 if self.t:
                     for v in self.variables[:-(stop_step - 1)]:
-                        covariates.append(v.get_covariate(n, current_date, frozenset(non_adopted)))
+                        covariates.append(v.get_covariate(n, current_date, frozenset(non_adopted),step))
                     ## Time
                     tmp = [0] * (stop_step)
                     tmp[step] = 1
                     covariates += tmp[:-1]
                 else:
                     for v in self.variables:
-                        covariates.append(v.get_covariate(n, current_date, frozenset(non_adopted)))
+                        covariates.append(v.get_covariate(n, current_date, frozenset(non_adopted),step))
 
 
                 adopted_probability = stats.norm.cdf(np.dot(covariates, parameters))
@@ -127,7 +135,8 @@ class HazardModel:
 
     def generate_MLE_input_data(self, verbose=False):
         non_adopted = self.network.users()  # all node are non-adopted at the begining
-        non_adopted = [i for i in non_adopted if int(i) not in self.sparse_user]          ######
+
+        non_adopted = [i for i in non_adopted if int(i) in self.users]          ###### Exclued those without Interactions
         current_date = self.network.start_date
         adopted = []
         mle_input_data = []
@@ -148,14 +157,14 @@ class HazardModel:
 
                 if self.t:
                     for v in self.variables[:-(stop_step-1)]:
-                        row.append(v.get_covariate(n, current_date, frozenset(non_adopted)))
+                        row.append(v.get_covariate(n, current_date, frozenset(non_adopted),step))
                     ## Time
                     tmp = [0] * stop_step
                     tmp[step] = 1
                     row += tmp[:-1]
                 else:
                     for v in self.variables:
-                        row.append(v.get_covariate(n, current_date, frozenset(non_adopted)))
+                        row.append(v.get_covariate(n, current_date, frozenset(non_adopted),step))
 
 
                 adoption = 0

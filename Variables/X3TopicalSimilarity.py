@@ -19,7 +19,7 @@ class X3Topical_Similarity(Variable):
         logging.basicConfig(filename="Logging/X3_Topic Miss.log", level=logging.NOTSET, format='%(asctime)s %(message)s')
 
 
-    def get_covariate(self, node, current_date, nonadopted):
+    def get_covariate(self, node, current_date, nonadopted, step):
         """
         Overwrite get_covariate function
         :param node:

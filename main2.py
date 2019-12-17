@@ -27,7 +27,7 @@ from Utils.Filepath import *
 
 
 
-WEEK_IN_SECOND =  24 * 60 * 60
+WEEK_IN_SECOND = 24 * 60 * 60
 STOP_STEP = 13
 # See https://github.com/yeqingyan/Sentiment_MaxEnt for program to preprocessing the sentiment data using MaxEnt
 #SENTIMENT_DATA = "data/thegoodplace_sentiment_seconds.json"
@@ -74,8 +74,8 @@ def main():
     if c is False:
         FN += 1000
 
-    logging.basicConfig(filename="hazard_%i.log" % FN, level=logging.NOTSET, format='%(asctime)s %(message)s')
-    with open("hazard_%i.log" %FN,"w"):
+    logging.basicConfig(filename="hazardTIU_%i.log" % FN, level=logging.NOTSET, format='%(asctime)s %(message)s')
+    with open("hazardTIU_%i.log" %FN,"w"):
         pass
     if os.path.isfile(DYNAMIC_NETWORK):
         g = pickle.load(open(DYNAMIC_NETWORK,"rb"))
@@ -87,7 +87,8 @@ def main():
     inter = Interaction(INTERACTION_FILE, "p")
 
     ## USERS
-    users = pickle.load(open("data/TheGoodPlace_users.p", "rb"))
+    #users = pickle.load(open("data/TheGoodPlace_users.p", "rb"))
+    users = pickle.load(open("data/users_TIS.p", "rb"))
     #susers = pickle.load(open("data/sparse_user2.p", "rb"))
     #users = [i for i in users if i not in susers]
 
@@ -105,7 +106,7 @@ def main():
     if MODEL > 4:
         variables.append(X2Reciprocal_Neighbors(g,users, inter))
     if MODEL > 5:
-        variables.append(X3Topical_Similarity(g, users, USER_TOPICS),)
+        variables.append(X3Topical_Similarity(g, users, USER_TOPICS))
     if MODEL == 7:
         variables.append(XSentiment(g, SENTIMENT_DATA, XSentiment.POSITIVE))      # X4Positive
         variables.append(XSentiment(g, SENTIMENT_DATA, XSentiment.NEUTRAL))  # X4Positive
@@ -117,7 +118,7 @@ def main():
         variables.append(XSentiment(g, SENTIMENT_DATA, XSentiment.NEGATIVE))  # X4Positive
     if MODEL > 2:
         variables += [X7TweetsFrequency(users, HIS_FREQS),
-        X8TopicalInterest(USER_TOPICS,[4]),   ## 1 for movie, 14 for drama
+        X8TopicalInterest(USER_TOPICS,[4]),   #
         X9Official(OFFICIAL),
         X10Hubs(HUBS),
         X11InDegree(IN_OUT),X12OutDegree(IN_OUT)]
@@ -148,17 +149,17 @@ def main():
         assert hasattr(v, 'name'), "Each variable must have a name attribute"
     print(t)
 
-    hazard_model = HazardModel(g, variables,t=t,model=MODEL)
+    hazard_model = HazardModel(g, variables,t=t)
     logging.info("Begin MLE estimation")
     # Step 1. MLE estimation
     ref_result, params = hazard_model.hazard_mle_estimation(update=True)
 
     # Step 2. Hazard model simulation
     sim_result, prob_dist = hazard_model.hazard_simulation(params)
-    pickle.dump(sim_result,open("Results/%s_sim_result.p"%FN,"wb"))
-    pickle.dump(prob_dist, open("Results/%s_prob_dist.p"%FN, "wb"))
+    pickle.dump(sim_result,open("Results/%s_sim_resultTIU.p"%FN,"wb"))
+    pickle.dump(prob_dist, open("Results/%s_prob_distTIU.p"%FN, "wb"))
     logging.info(sim_result)
-    plot({"Reference": ref_result, "MLE result": sim_result}, show=False,main="plot_%i.png" % FN)
+    plot({"Reference": ref_result, "MLE result": sim_result}, show=False,main="plot2_%i.png" % FN)
 
 
 if __name__ == "__main__":

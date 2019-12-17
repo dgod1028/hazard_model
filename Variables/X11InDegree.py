@@ -5,13 +5,13 @@ from Utils.Utils import *
 import json
 import pickle
 from Utils.Filepath import HIS_FREQS
+import pandas as pd
 
-#USER_TOPICS = '../data/lda/his_user_topic.p'   # <- User Topics Files from LDA Model
 
-class X10Hubs(Variable):
-    def __init__(self, hubs_file):
-        super().__init__("influential hubs")
-        self.hubs = pickle.load(open(hubs_file, "rb"))
+class X11InDegree(Variable):
+    def __init__(self,inout):
+        super().__init__("in-degree")
+        self.in_out = pd.read_csv(inout,index_col=0)
 
     def get_covariate(self, node, current_date, nonadopted, step):
         """
@@ -24,7 +24,10 @@ class X10Hubs(Variable):
 
         node = int(node)
 
-        if node in self.hubs:
-            return 1
+        if node in self.in_out.index:
+            if self.in_out.loc[node, "In"] > 0:
+                return math.log(self.in_out.loc[node, "In"])
+            else:
+                return 0
         else:
             return 0

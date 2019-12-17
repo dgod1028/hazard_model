@@ -44,7 +44,7 @@ class XSentiment(Variable):
 
 
 
-    def get_covariate(self, node, current_date, nonadopted):
+    def get_covariate(self, node, current_date, nonadopted, step):
         """
         Return number of specific sentiment a node received from its adopted neighbor.
         At step 0, the value should be 0, since no neighbor is adopted.
@@ -64,7 +64,7 @@ class XSentiment(Variable):
                 continue
             else:
                 # adopted_neighbors += 1
-                num_sentiment += self.sentiment[neighbor][step-1]
+                num_sentiment += self.sentiment[str(neighbor)][step-1]
 
         # # return self.sentiment[node][step]
         # if adopted_neighbors == 0:

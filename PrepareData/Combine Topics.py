@@ -6,7 +6,7 @@ import bson
 import sys
 from collections import defaultdict
 from tqdm import tqdm
-
+import glob
 
 import pickle as pk
 from time import time
@@ -50,11 +50,14 @@ def combine(topic_list,normalize=False):
 
 
 if __name__ == "__main__":
-    topiclist = ["../data/LDA/user_topics%i.p" % i for i in range(16)]
-    user_topic = combine(topiclist)
-    pk.dump(user_topic, open("user_topic.p", "wb"))
-    user_topic = combine(topiclist,normalize=True)
-    pk.dump(user_topic,open("user_topic_prob.p","wb"))
-    print(user_topic)
+    #topiclist = ["../data/LDA/user_topics%i.p" % i for i in range(16)]
+    #topiclist = ["../data/LDA/user_topics%i.p" % i for i in range(16)]
+    topiclist = glob.glob("../data/LDA/TGP*.p") + glob.glob("../data/LDA/TIU*.p")
     print(topiclist)
+    user_topic = combine(topiclist)
+    pk.dump(user_topic, open("../data/LDA/user_topic.p", "wb"))
+    user_topic = combine(topiclist,normalize=True)
+    pk.dump(user_topic,open("../data/LDA/user_topic_prob.p","wb"))
+    #print(user_topic)
+    print(len(user_topic))
     #combine()

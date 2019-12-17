@@ -3,8 +3,8 @@ import numpy as np
 import pickle
 from tqdm import tqdm
 
-"""
-inter2 = pickle.load(open("d:/github/hazard_model/data/interactions.p", "rb"))
+
+inter2 = pickle.load(open("d:/github/hazard_model/data/interactions_ThisIsUs.p", "rb"))
 in_out = pd.DataFrame(np.zeros((len(inter2.keys()), 2)))
 in_out.index = inter2.keys()
 in_out.columns = ["In", "Out"]
@@ -15,10 +15,10 @@ for u1, v in tqdm(inter2.items()):
         if int(u2) in users:
             in_out.loc[int(u2), "In"] += i
 
-in_out.to_csv("../data/in_out.csv")
-"""
+in_out.to_csv("../data/in_out_TIU.csv")
 
-in_out = pd.read_csv("../data/in_out.csv",index_col=0)
+
+in_out = pd.read_csv("../data/in_out_TIU.csv",index_col=0)
 
 sd = in_out.std()
 threshold_1 = 3 * sd["In"]
@@ -28,4 +28,4 @@ for u in in_out.index:
     if in_out.loc[u,"In"] > threshold_1 and in_out.loc[u,"Out"] > threshold_2:
         hubs.append(u)
 
-pickle.dump(hubs,open("../data/hubs.p","wb"))
+pickle.dump(hubs,open("../data/hubs_TIU.p","wb"))

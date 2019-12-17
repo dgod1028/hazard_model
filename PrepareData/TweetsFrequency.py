@@ -2,7 +2,7 @@ import pickle
 import networkx
 from Utils.NetworkUtils import get_graphml
 from Utils.Utils import get_mongo_connection, read_users, chunkIt
-from Utils.Filepath import USERS, HISTORICAL_COLLECTION, HIS_FREQS
+from Utils.Filepath_TheGoodPlace import USERS, HISTORICAL_COLLECTION, HIS_FREQS
 from collections import defaultdict
 from multiprocessing import Pool
 from functools import partial
@@ -28,8 +28,11 @@ def historical_freq(multi = False, core = 4):
     """
     db = get_mongo_connection()
     his_freqs = defaultdict(int)
-    users = read_users(USERS, type="p")
+    users1 = read_users(USERS, type="p")  # "TheGoodPlace Users in nodes"
+    users2 = read_users("data/ThisIsUs_users.p", type="p") #"ThisIsUs Users in nodes"
+    users = set(users1 + users2)
     l = len(users)
+    print("% users in total." %l)
     for his in HISTORICAL_COLLECTION:
         db.his = db[his]
         assert multi==False, 'Please set multi == False'
@@ -51,28 +54,23 @@ def historical_freq(multi = False, core = 4):
                     print('%s \t %i / %i'% (datetime.datetime.now(), now, total))
                 #if user["user_id"] in users:
                 #    his_freqs[user["user_id"]] += 1
+
                 try:
-                    his_freqs[user["user_id"]] += 1
+                    if user["user_id"] in users:
+                        his_freqs[user["user_id"]] += 1
                 except:
-                    pass
+                    try:
+                        if user["user"]["id"] in users:
+                            his_freqs[user["user"]["id"]] += 1
+                    except:
+                        print("Error")
+                        print(user)
                 now += 1
 
             print("Finished!")
             print('Cost %.3f' %(time.time() - start))
     pickle.dump(his_freqs,open(HIS_FREQS,"wb"))
 
-    """ Slow
-    for user in users:
-        if now % 100 == 0:
-            print("Now in {}".format("%i" % now))
-        query_string = {'user_id':user}
-        count = 0
-        for i in db.his.find(query_string):
-            count += 1
-        his_freqs[user] = count
-        now += 1
-    print(his_freqs)
-    """
 
 
 

@@ -14,7 +14,7 @@ class X7TweetsFrequency(Variable):
         self.his_freq = pickle.load(open(his_freq_file, "rb"))
         self.users = users
 
-    def get_covariate(self, node, current_date, nonadopted):
+    def get_covariate(self, node, current_date, nonadopted, step):
         """
         Overwrite get_covariate function
         :param node:

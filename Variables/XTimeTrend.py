@@ -6,12 +6,11 @@ from Utils.Utils import *
     XTime for X11(t)
 """
 
-class XTime(Variable):
+class XTimeTrend(Variable):
 
-    def __init__(self, time):
+    def __init__(self):
 
-        super().__init__("Time %i" % time)
-        self.time = time
+        super().__init__("Time_Trend")
 
     def get_covariate(self, node, current_date, nonadopted, step):
         """
@@ -23,9 +22,5 @@ class XTime(Variable):
         :param nonadopted: 
         :return:                sentiment varialbe of node at current_date 
         """
-
-        if current_date == self.time:
-            return 1
-        else:
-            return 0
+        return step
 

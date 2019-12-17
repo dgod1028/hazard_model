@@ -1,10 +1,11 @@
-
+import argparse
 import json as js
 import numpy as np
 import gzip
 import os
 import bson
 import sys
+#sys.path.append('/home/li/Hazard')
 from collections import defaultdict
 
 import pickle as pk
@@ -22,13 +23,27 @@ from sklearn.metrics.pairwise import cosine_similarity
 from scipy.spatial.distance import cosine
 from Utils.Utils import get_mongo_connection,  divide_work
 import gensim.parsing.preprocessing as pre
-from Utils.Filepath import HISTORICAL_COLLECTION
+from Utils.Filepath_TheGoodPlace import HISTORICAL_COLLECTION,TWEETS_COLLECTION
 import datetime
 from PrepareData.LDA3 import preprocess_Tweets
+from multiprocessing import Pool
 
+CORE = 6
+HIS = 1
 
-LDA_FILE = "data/LDA/his_lda_20.lda"
+LDA_FILE = "data/LDA/his_lda_6.lda"
 lda = LdaModel.load(LDA_FILE)
+db = get_mongo_connection()
+#coll = db[HISTORICAL_COLLECTION[HIS]]
+#coll = db[TWEETS_COLLECTION["TheGoodPlace"][HIS] ]
+coll = db[TWEETS_COLLECTION["ThisIsUs"][HIS] ]
+r = divide_work(coll.count(), CORE)
+
+
+def config():
+    parser = argparse.ArgumentParser(description="Inference User Topics")
+    parser.add_argument('--o', type=int, help="Task ID (0 ~ Core number -1")
+    return vars(parser.parse_args())
 
 def clean_text(text):
     return text.split(" ")
@@ -48,10 +63,15 @@ def infer_topic(text):
     return topics
 
 
-def user_topics2(path=""):
+def user_topics(task=None):
     print("Start aggregate topics...")
+    op = task
+    rr = list(r[op])
+    print("Process %i: from %i to %i" %(op, rr[0], rr[-1]+1))
+    path = "TIU1_user_topics%s.p" % (op)
     dat = get_mongo_connection()
-    coll = dat[HISTORICAL_COLLECTION[0]]
+    #coll = dat[HISTORICAL_COLLECTION[HIS]]
+    coll = db[TWEETS_COLLECTION["ThisIsUs"][HIS]]
     l = coll.count()
     users = defaultdict()
     count = 0
@@ -94,16 +114,19 @@ def normalization(vec):
         return vec
 
 if __name__ == "__main__":
-    db = get_mongo_connection()
-    coll = db[HISTORICAL_COLLECTION[0]]
-    r = divide_work(coll.count(),8)
+    #args = config()
+
     #op = sys.argv[1]
-    op = 7
-    rr = list(r[op])
-    print("Process %i: from %i to %i" %(op, rr[0], rr[-1]))
-    user_topics = user_topics2("user_topics%s.p" % op)
+    #op = 7
+    #rr = list(r[op])
+    #print("Process %i: from %i to %i" %(op, rr[0], rr[-1]))
+    #path = ["user_topics%s.p" % (op+8) for op in range(8)]
+    #utopics = user_topics("user_topics%s.p" % op)
+    with Pool() as p:
+        utopics = p.map(user_topics, range(CORE))
+
     print("Finished")
-    print(user_topics)
+    print(utopics)
 
 
 

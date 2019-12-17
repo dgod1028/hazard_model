@@ -8,6 +8,7 @@ from textblob import TextBlob
 from multiprocessing.dummy import Pool as ThreadPool
 import multiprocessing
 import datetime
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 #COLLS = ['TheGoodPlace_new','TheGoodPlace_o']
 COLLS = ['ThisIsUs_new','ThisIsUs_o']
@@ -62,8 +63,8 @@ def process_cursor(skip_n,limit_n):
             tweets[user] = defaultdict()
         tweets[user][create_time] = sent
     print('Completed process', skip_n // limit_n, '...')
-    json.dump(tweets, open("../data/his/Tweets_TIS02_%i_%i.json" % (i, task_id), "w"))
-    pickle.dump(official, open("../data/his/official_TIS02_%i_%i.p" % (i,task_id), "wb"))
+    json.dump(tweets, open("../data/his/Tweets_TIS2_%i_%i.json" % (i, task_id), "w"))
+    pickle.dump(official, open("../data/his/official_TIS2_%i_%i.p" % (i,task_id), "wb"))
     #return tweets, official
 
 
@@ -75,25 +76,6 @@ def collect_text(collection):
     #l = 5000
     official = []
     for t in tqdm(coll.find(),total=l):
-        try:
-            user = int(t["user_id"])
-            name = t["screen_name"]
-        except:
-            try:
-                user = int(t["user"]["id"])
-                name = t["user"]["screen_name"]
-            except:
-                continue
-
-        if name in media and name not in official:
-            official.append(user)
-        try:
-            create_time = int(t['created_at'].timestamp())
-        except:
-            try:
-                create_time = int(datetime.datetime.strptime(t['created_at'], "%a %b %d %H:%M:%S %z %Y").timestamp())
-            except:
-                continue
         text = t["text"]
         sent = TextBlob(text).sentiment[0]
         if sent > 0:
@@ -113,7 +95,7 @@ def collect_text(collection):
 
 if __name__ == "__main__":
 
-    n_cores = 7
+    n_cores = 8
     db = get_mongo_connection()
     collection_size = db[COLLS[i]].count()
     batch_size = round(collection_size/n_cores+0.5)

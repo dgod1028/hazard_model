@@ -5,6 +5,6 @@ class X0Intercept(Variable):
     def __init__(self):
         super().__init__("Constant")
 
-    def get_covariate(self, node, current_date, nonadopted):
+    def get_covariate(self, node, current_date, nonadopted, step):
         #print("X0 Finished")
         return 1

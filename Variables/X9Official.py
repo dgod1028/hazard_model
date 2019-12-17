@@ -13,7 +13,7 @@ class X9Official(Variable):
         super().__init__("Official media")
         self.officials = pickle.load(open(official_file, "rb"))
 
-    def get_covariate(self, node, current_date, nonadopted):
+    def get_covariate(self, node, current_date, nonadopted, step):
         """
         Overwrite get_covariate function
         :param node:

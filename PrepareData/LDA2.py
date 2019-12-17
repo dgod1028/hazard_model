@@ -22,13 +22,15 @@ from multiprocessing import Pool
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.spatial.distance import cosine
+from Utils.Utils import get_mongo_connection,  divide_work
 import gensim.parsing.preprocessing as pre
+from Utils.Filepath import HISTORICAL_COLLECTION
 
 #### Must
 PATH = ('D:/Github/hazard_model')  # Change to your path here
 HIS_FILE = "data/old_tweets_2017.p"  # path of historical tweets
 TWEET_FILE = 'data/tweets.p'         # add for build LDA model with bos tweets and historical file
-ALL_FILES = [HIS_FILE, TWEET_FILE]
+ALL_FILES = [HIS_FILE]
 
 #### Optional   *path for if save tmp files
 ## Note that need to make directory tmp to save files in default
@@ -53,9 +55,25 @@ class LDA:
     ## Function for multiprocessing
 
     def todict(self,arg):  ## For his
+        print("###")
         return [arg["user_id"], arg["text"]]
+
+
     def todict2(self,arg):
             return [arg["user"]["id"],arg["text"]]
+    def todict3(self,arg):
+        dat = get_mongo_connection()
+        coll = dat[HISTORICAL_COLLECTION]
+        dic = []
+        l = len(list(arg))
+        print("Total: %i" % l)
+        count = 0
+        for i in coll.find()[arg[0]:arg[-1]]:
+            count += 1
+            if count % 10000 == 0:
+                print("Finished  %i / %i" %(count, l))
+            dic.append([i['user_id'],i['text']])
+        return dic
 
     def LDA(self, file, type="p", by_user=False, update=True):
         sta = time()
@@ -74,16 +92,34 @@ class LDA:
             if (os.path.isfile(TEXT_FILE) and os.path.isfile(
                     UTEXT_FILE) and update == False) == False:
                 ## If text list is not created, then create text list from pickle(or json)
-                dat = self.read_file(file[0], type) ## his data
-                dat2 = self.read_file(file[1],type) ## tweets data
+                #dat = self.read_file(file[0], type) ## his data
+                #dat2 = self.read_file(file[1],type) ## tweets data
+                #dat = get_mongo_connection()
+                #coll = dat[HISTORICAL_COLLECTION]
                 if self.multi:
-                    p = Pool()
+                    p = Pool(4)
                     utexts = defaultdict()  ## ignore all for utexts
-                    tmp = p.map(self.todict, dat)  ### return [user_id,text] for each user
-                    tmp2 = p.map(self.todict2,dat2)
+                    print("Start collect text data")
+                    #n = coll.count()
+                    n = 10000
+                    r = divide_work(n,4)
+                    print(r)
+                    s1 = time()
+                    dat = get_mongo_connection()
+                    coll = dat[HISTORICAL_COLLECTION]
+                    coll.reindex()
+                    doc =  coll.find()
+                    print("Start Multi-processing...")
+                    tmp = p.map(self.todict, doc[1:10000])  ### return [user_id,text] for each user
+                    #tmp5 = []
+                    #for i in tmp:
+                    #    tmp5 += i
+
+                    #tmp2 = p.map(self.todict2,dat2)
                     texts = []
                     ### Aggregate texts by users.
-                    tmp3 = tmp + tmp2
+                    #tmp3 = tmp5
+                    tmp3 = tmp
                     for i in tmp3:
                         if utexts.get(str(i[0])) == None:
                             utexts[str(i[0])] = []
@@ -96,6 +132,7 @@ class LDA:
                         # print(cleaned_text)
                         texts.append(cleaned_text)
                     p.close()
+                    print("Extract Cost\t: %.2f" %(time()-s1))
                 #
                 """ Need Fix for non multi
                 else:
@@ -127,6 +164,7 @@ class LDA:
                 print("Run LDA...", end="")
             lda = LdaModel(common_corpus, num_topics=self.t)
             lda.save(LDA_FILE)
+            for user
             if self.debug:
                 print("Finished!")
             return [lda, common_corpus, common_dictionary]
@@ -186,23 +224,24 @@ class LDA:
         if path != "":
             if os.path.isfile(path):
                 return pk.load(open(path, "rb"))
-        dat = pk.load(open(file[0], "rb"))
-        dat2 = pk.load(open(file[1], "rb"))
+        #dat = pk.load(open(file[0], "rb"))
+        coll = get_mongo_connection()[HISTORICAL_COLLECTION]
+        #dat2 = pk.load(open(file[1], "rb"))
         if self.multi:
             p = Pool()
-            id = p.map(self.get_user_id, dat)
-            id2 = p.map(self.get_id,dat2)
+            id = p.map(self.get_user_id, coll.find()[:1000000])
+            #id2 = p.map(self.get_id,dat2)
         else:
             id = []
-            id2 = []
+            #id2 = []
             for i in dat:
                 id.append(self.get_user_id(i))
-            for i in dat2:
-                id2.append(self.get_id(i))
+            #for i in dat2:
+             #   id2.append(self.get_id(i))
         if self.save:
             pk.dump(id, open(path, "wb"))
 
-        return id + id2
+        return id
 
     """  ## Maybe memoryoff if data is too big.
     def unique_ids(self,ids):
@@ -263,7 +302,7 @@ class LDA:
 if __name__ == "__main__":
     # 1. Run LDA Model
     lda = LDA(t=4, multi=True, debug=True, savetmp=True)
-    model, corpus, dic = lda.LDA(file=ALL_FILES, update=False)
+    model, corpus, dic = lda.LDA(file=ALL_FILES, update=True)
 
     # 2. Get Topic share for each documents
     dt = model.get_document_topics(corpus)
@@ -277,9 +316,9 @@ if __name__ == "__main__":
     # print(lda.topical_similarity(user_topics["40184043"],user_topics["2202380486"]))
 
     ## Example
-    print(user_topics["341135120"])
-    print(user_topics["1315351699"])
-    print(lda.topical_similarity(user_topics["341135120"], user_topics["1315351699"]))
+    print(user_topics)
+    print(user_topics["747976695618035712"])
+    print(lda.topical_similarity(user_topics["2202380486"], user_topics["747976695618035712"]))
     """
     topic_share = lda.doctopic2mat(dt,savefile=True,path="tmp/topic_share.csv")
     """

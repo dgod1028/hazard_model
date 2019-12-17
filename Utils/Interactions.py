@@ -16,9 +16,15 @@ class Interaction:
         key = (user1, user2)
         # if(key  in self.memoise):
         #     return self.memoise[key]
-        user1_retweet_set = set(self.interactions[int(user1)]['retweets'].keys())
-        user2_retweet_set = set(self.interactions[int(user2)]['retweets'].keys())
-        jac = Interaction.jaccard(user1_retweet_set, user2_retweet_set)
+        if self.interactions[int(user1)] is not None:
+            user1_retweet_set = set(self.interactions[int(user1)]['retweets'].keys())
+        else:
+            return 0
+        if self.interactions[int(user2)] is not None:
+            user2_retweet_set = set(self.interactions[int(user2)]['retweets'].keys())
+        else:
+            return 0
+        jac = self.jaccard(user1_retweet_set, user2_retweet_set)
         # self.memoise[key] = jac
         return jac
     def interaction_count(self, user1, user2):
@@ -30,7 +36,7 @@ class Interaction:
         all_interactions = self.interactions[int(user1)]['interactions']
         s_user2 = user2
         if s_user2 in all_interactions:
-            return all_interactions[s_user2]
+            return all_interactions[str(s_user2)]
         else:
             return 0
     def load_file(self,filename, type):
@@ -40,7 +46,7 @@ class Interaction:
             interactions = json.load(open(filename, 'r',encoding="utf-8"))
         return interactions
 
-    def jaccard(a, b):
+    def jaccard(self,a, b):
             if len(a) == len(b) == 0:
                 return 0
             else:

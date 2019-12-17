@@ -7,24 +7,27 @@ from pymongo import MongoClient
 import pickle
 import json
 import logging
+from tqdm import tqdm
 
 # TODO move this to some global setting
 
 
-USER_FILE = "../data/TheGoodPlace.csv"
+#USER_FILE = "../data/TheGoodPlace.csv"
+USER_FILE = "../data/ThisIsUs_users.p"
 INTERACTION_COLLECTION = "Interactions"
 
 def main():
     #output_dir = USER_FILE.rpartition('.')[0]
     output_dir = "../data/"
-    init_logging(output_dir + '_log.log')
+    init_logging(output_dir + 'interaction_thisisus_log.log')
     db = get_mongo_connection()
     coll = db[INTERACTION_COLLECTION]
-    users = read_users(USER_FILE)
-    users = list(users)[:500]
+    #users = read_users(USER_FILE)
+    users = pickle.load(open(USER_FILE,"rb"))
+    #users = list(users)[:500]
     interactions = get_interactions(users, coll)
-    pickle.dump(interactions, open(output_dir + 'interactions.p', 'wb'))
-    json.dump(interactions, open(output_dir + 'interactions.json', 'w'))
+    pickle.dump(interactions, open(output_dir + 'interactions_ThisIsUs.p', 'wb'))
+    json.dump(interactions, open(output_dir + 'interactions_ThisIsUs.json', 'w'))
 
 
 def init_logging(log_file):
@@ -35,7 +38,7 @@ def get_interactions(users, coll):
     interactions = dict()
     done = 0
     no_data = 0
-    for user in users:
+    for user in tqdm(users):
         inter = coll.find_one({'id' : user}, {'_id': False})
         if not inter:
             no_data += 1

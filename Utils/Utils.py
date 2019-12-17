@@ -22,7 +22,7 @@ def make_userid(file):
 
 def topical_similarity(user1, user2):
         # return cosine_similarity(user1,user2)  ## Error
-        return 1 - cosine(user1, user2)
+        return 1 - cosine(user1[5], user2[5])
 
 def read_users(user_file,type='p'):
     assert any(type in i for i in ['p','csv']) , "Only support csv and pickle file."
